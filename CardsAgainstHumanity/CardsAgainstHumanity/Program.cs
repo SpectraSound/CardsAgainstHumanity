@@ -11,8 +11,16 @@ namespace CardsAgainstHumanity
 {
     class Program
     {
+       
         static void Main(string[] args)
         {
+            //IEnumerable<string> whiteCards = File.ReadLines(@"C:\Users\SpectraSound\source\repos\CardsAgainstHumanity\WhiteCards.txt");
+
+            //foreach (var card in whiteCards)
+            //{
+            //    Console.WriteLine(card);
+            //}
+            
             IPAddress[] localIP = Dns.GetHostAddresses(Dns.GetHostName());
             foreach (IPAddress addr in localIP)
             {
@@ -44,6 +52,8 @@ namespace CardsAgainstHumanity
     class CardCzar : TcpListener
     {
         public List<TcpClient> receivedClients = new List<TcpClient>();
+
+       
 
         public string help =
                                 "\n To send a message to everyone type <all:> followed by your message." +
