@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+using System.IO;
 
 namespace CardsAgainstHumanity
 {
@@ -12,6 +13,31 @@ namespace CardsAgainstHumanity
     {
         static void Main(string[] args)
         {
+            IPAddress[] localIP = Dns.GetHostAddresses(Dns.GetHostName());
+            foreach (IPAddress addr in localIP)
+            {
+                if (addr.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    Console.WriteLine(addr);
+                }
+            }
+
+            Console.WriteLine("Will you be player or Cardczar: 'P' or 'C' ");
+            string answer = Console.ReadLine();
+
+            switch (answer.ToLower())
+            {
+                case "c":
+                    Console.Write("Enter Port: ");
+                    CardCzar cardCzar = new CardCzar(int.Parse(Console.ReadLine()));
+                    break;
+
+                case "p":
+                    Player player = new Player();
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
