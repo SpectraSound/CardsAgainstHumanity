@@ -61,7 +61,7 @@ namespace CardsAgainstHumanity
                                 "\n To show the IP address of all connected people type <show:> then press enter" +
                                 "\n To open this prompt again type <help:> then press enter";
 
-
+        public int pointsToWin;
 
         public string GetClientIP(TcpClient client)
         {
@@ -74,7 +74,10 @@ namespace CardsAgainstHumanity
             this.Start();
 
             Console.WriteLine();
-            Console.WriteLine("Awaiting client");
+            Console.WriteLine("´Choose how many points you need to win:");
+            pointsToWin = int.Parse(Console.ReadLine());
+            Console.WriteLine();
+            Console.WriteLine("Awaiting clients");
 
             AcceptClients(this);
 
@@ -84,8 +87,10 @@ namespace CardsAgainstHumanity
 
             while (ConnectionOn)
             {
-                Console.Write("\nYou: ");
-                string text = Console.ReadLine();
+                Console.WriteLine("\nThe Chosen Card ");
+                string text = $"The Chosen Black Card Is\n\n{ChooseBlackCard()}";
+                Console.WriteLine();
+                Console.WriteLine(text);
                 byte[] buffer = Encoding.UTF8.GetBytes(text);
 
                 foreach (var client in receivedClients)
@@ -108,6 +113,40 @@ namespace CardsAgainstHumanity
 
             }
         }
+
+        public string ChooseBlackCard()
+        {
+            IEnumerable<string> blackCards = File.ReadLines(@"C: \Users\SpectraSound\source\repos\CardsAgainstHumanity\BlackCards");
+            List<string> randomBlackCards = new List<string>();
+            foreach (var blackCard in blackCards)
+            {
+                randomBlackCards.Add(blackCard);
+            }
+            Random selectCard = new Random();
+            int chosenCard = selectCard.Next(0, randomBlackCards.Count);
+            return randomBlackCards[chosenCard];
+        }
+
+        public string[] ChooseWhiteCards()
+        {
+            int chosenCard;
+            string[] chosenCards = new string[5];
+            IEnumerable<string> whiteCards = File.ReadLines(@"C: \Users\SpectraSound\source\repos\CardsAgainstHumanity\WhiteCards");
+            List<string> randomWhiteCards = new List<string>();
+            foreach (var whiteCard in whiteCards)
+            {
+                randomWhiteCards.Add(whiteCard);
+            }
+            Random selectCard = new Random();
+            
+            for (int i = 0; i < 5; i++)
+            {
+                chosenCard = selectCard.Next(0, randomWhiteCards.Count);
+                chosenCards[i] = randomWhiteCards[chosenCard];
+            }
+            return chosenCards;
+        }
+
 
         public async void AcceptClients(TcpListener listener)
         {
