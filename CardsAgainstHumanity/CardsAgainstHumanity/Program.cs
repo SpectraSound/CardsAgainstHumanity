@@ -14,12 +14,6 @@ namespace CardsAgainstHumanity
        
         static void Main(string[] args)
         {
-            //IEnumerable<string> whiteCards = File.ReadLines(@"C:\Users\SpectraSound\source\repos\CardsAgainstHumanity\WhiteCards.txt");
-
-            //foreach (var card in whiteCards)
-            //{
-            //    Console.WriteLine(card);
-            //}
             
             IPAddress[] localIP = Dns.GetHostAddresses(Dns.GetHostName());
             foreach (IPAddress addr in localIP)
@@ -53,81 +47,29 @@ namespace CardsAgainstHumanity
     {
         public List<TcpClient> receivedClients = new List<TcpClient>();
 
-       
-
-        public string help =
-                                "\n To send a message to everyone type <all:> followed by your message." +
-                                "\n To send a message to a specific person type <client:> <INSERT PERSON IP:> followed by your message" +
-                                "\n To show the IP address of all connected people type <show:> then press enter" +
-                                "\n To open this prompt again type <help:> then press enter";
-
         public int pointsToWin;
         public bool gameStart = false;
-
-
-        public string GetClientIP(TcpClient client)
-        {
-            string clientIP = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
-            return clientIP;
-        }
 
         public CardCzar(int port) : base(IPAddress.Any, port)
         {
             this.Start();
 
-            Console.WriteLine();
-            Console.WriteLine("Choose how many points you need to win:");
-            pointsToWin = int.Parse(Console.ReadLine());
-            Console.WriteLine();
+           
             Console.WriteLine("Awaiting clients");
 
             AcceptClients(this);
 
-            Console.WriteLine("start game?");
-            string startGame = Console.ReadLine();
-
-            if (startGame.ToLower() == "yes")
-            {
-                gameStart = true;
-            }
+            SetupGame();
 
             while (gameStart)
             {
+                string input = Console.ReadLine();
 
-
-                Console.WriteLine("\nThe Chosen Card ");
-                
-                string text = $"The Chosen Black Card Is\n\n{ChooseBlackCard()}\n";
-                Console.WriteLine();
-                Console.WriteLine(text);
-                Console.ReadLine();
-                byte[] buffer = Encoding.UTF8.GetBytes(text);
-                string whiteCards = ChooseWhiteCards();
-                byte[] whiteCardsBytes = Encoding.UTF8.GetBytes(whiteCards);
-                
-
-                foreach (var client in receivedClients)
-                {
-                    try
-                    {
-                        if (client.Connected)
-                        {
-                            client.GetStream().Write(buffer, 0, buffer.Length);
-                            client.GetStream().Write(whiteCardsBytes, 0, whiteCardsBytes.Length);
-                            
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        client.Close();
-                        Console.WriteLine($"{GetClientIP(client)} Has left.");
-                        receivedClients.Remove(client);
-                    }
-
-                }
+                SendMessages(input);
 
             }
         }
+
 
         public string ChooseBlackCard()
         {
@@ -141,6 +83,7 @@ namespace CardsAgainstHumanity
             int chosenCard = selectCard.Next(0, randomBlackCards.Count);
             return randomBlackCards[chosenCard];
         }
+
 
         public string ChooseWhiteCards()
         {
@@ -181,16 +124,17 @@ namespace CardsAgainstHumanity
                 }
                 
                     NetworkStream stream = client.GetStream();
-                    byte[] helpBytes = Encoding.UTF8.GetBytes(help);
+                    
                     Console.WriteLine("You are connected");
                     receivedClients.Add(client);
                     Console.WriteLine(receivedClients.Count);
-                    client.GetStream().Write(helpBytes, 0, helpBytes.Length);
+
                     ReceiveMessages(stream, client);
                 
 
             }
         }
+
 
         public async void ReceiveMessages(NetworkStream stream, TcpClient client)
         {
@@ -241,8 +185,7 @@ namespace CardsAgainstHumanity
                             break;
 
                         case "help":
-                            byte[] helpBytes = Encoding.UTF8.GetBytes(help);
-                            client.GetStream().Write(helpBytes, 0, helpBytes.Length);
+                            help(client);
 
                             break;
 
@@ -270,6 +213,102 @@ namespace CardsAgainstHumanity
                     break;
                 }
 
+            }
+        }
+
+
+        public string GetClientIP(TcpClient client)
+        {
+            string clientIP = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
+            return clientIP;
+        }
+
+
+        public void help(TcpClient client)
+        {
+            string help = "\n To send a message to everyone type <all:> followed by your message." +
+            "\n To send a message to a specific person type <client:> <INSERT PERSON IP:> followed by your message" +
+            "\n To show the IP address of all connected people type <show:> then press enter" +
+            "\n To open this prompt again type <help:> then press enter";
+
+            byte[] helpBuffer = Encoding.UTF8.GetBytes(help);
+
+            client.GetStream().Write(helpBuffer, 0, helpBuffer.Length);
+
+        }
+
+
+        public void SetupGame()
+        {
+            Console.WriteLine();
+            Console.WriteLine("Choose how many points you need to win:");
+            pointsToWin = int.Parse(Console.ReadLine());
+            Console.WriteLine();
+
+            Console.WriteLine("start game?");
+            string startGame = Console.ReadLine();
+
+            if (startGame.ToLower() == "yes")
+            {
+                gameStart = true;
+            }
+        }
+
+
+        public void SendMessages(string input)
+        {
+            switch (input.Trim().ToLower())
+            {
+                case "next round":
+                    string blackCard = $"\nThe Chosen Black Card Is\n\n{ChooseBlackCard()}\n";
+                    string whiteCards = ChooseWhiteCards();
+                    Console.WriteLine();
+                    Console.WriteLine(blackCard);
+
+                    byte[] blackCardBytes = Encoding.UTF8.GetBytes(blackCard);
+                    byte[] whiteCardsBytes = Encoding.UTF8.GetBytes(whiteCards);
+
+                    foreach (var client in receivedClients)
+                    {
+                        try
+                        {
+                            if (client.Connected)
+                            {
+                                client.GetStream().Write(blackCardBytes, 0, blackCardBytes.Length);
+                                client.GetStream().Write(whiteCardsBytes, 0, whiteCardsBytes.Length);
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            client.Close();
+                            Console.WriteLine($"{GetClientIP(client)} Has left.");
+                            receivedClients.Remove(client);
+                        }
+                    }
+                    break;
+
+
+
+                default:
+                    byte[] buffer = Encoding.UTF8.GetBytes(input);
+
+                    foreach (var client in receivedClients)
+                    {
+                        try
+                        {
+                            if (client.Connected)
+                            {
+                                client.GetStream().Write(buffer, 0, buffer.Length);
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            client.Close();
+                            Console.WriteLine($"{GetClientIP(client)} Has left.");
+                            receivedClients.Remove(client);
+                        }
+                    }
+                    break;
             }
         }
     }
