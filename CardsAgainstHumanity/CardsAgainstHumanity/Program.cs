@@ -156,14 +156,14 @@ namespace CardsAgainstHumanity
                     string receivedMessage = Encoding.UTF8.GetString(buffer, 0, numberOfBytesRead);
                     string[] command = receivedMessage.ToLower().Split(':');
                     string shownMessage = receivedMessage.Substring(command[0].Length);
-                    byte[] sendMessage = Encoding.UTF8.GetBytes($"\n{GetClientIP(client)}: \n{shownMessage}");
+                    byte[] sentMessage = Encoding.UTF8.GetBytes($"\n{GetClientIP(client)}: \n{shownMessage}");
                     switch (command[0])
                     {
                         case "all":
                             Console.WriteLine($"\n{GetClientIP(client)}: {receivedMessage}");
                             foreach (var person in receivedClients)
                             {
-                                person.GetStream().Write(sendMessage, 0, sendMessage.Length);
+                                person.GetStream().Write(sentMessage, 0, sentMessage.Length);
                             }
                             break;
 
@@ -174,7 +174,7 @@ namespace CardsAgainstHumanity
                                 if (command[1] == ((IPEndPoint)person.Client.RemoteEndPoint).Address.ToString())
                                 {
 
-                                    person.GetStream().Write(sendMessage, 0, sendMessage.Length);
+                                    person.GetStream().Write(sentMessage, 0, sentMessage.Length);
                                 }
                             }
                             break;
@@ -268,13 +268,16 @@ namespace CardsAgainstHumanity
 
             if (startGame.ToLower() == "yes")
             {
-                foreach (var player in receivedClients)
+                for (int player = 0; player < receivedClients.Count; player++)
                 {
                     playerPoints.Add(0);
-                    string playerNumber = $"\n You are player {receivedClients.IndexOf(player)}\n";
+                    string playerNumber = $"\n You are player {player}\n";
                     byte[] playerNumberBytes = Encoding.UTF8.GetBytes(playerNumber);
-                    player.GetStream().Write(playerNumberBytes, 0, playerNumberBytes.Length);
+                    receivedClients[player].GetStream().Write(playerNumberBytes, 0, playerNumberBytes.Length);
                 }
+                
+
+                
                 gameStart = true;
             }
         }
@@ -286,29 +289,22 @@ namespace CardsAgainstHumanity
             {
                 case "next round":
                     string blackCard = $"\nThe Chosen Black Card Is\n\n{ChooseBlackCard()}\n";
-                    string whiteCards = ChooseWhiteCards();
+                    
                     Console.WriteLine();
                     Console.WriteLine(blackCard);
 
                     byte[] blackCardBytes = Encoding.UTF8.GetBytes(blackCard);
-                    byte[] whiteCardsBytes = Encoding.UTF8.GetBytes(whiteCards);
 
-                    foreach (var client in receivedClients)
+
+                    for (int client = 0; client < receivedClients.Count; client++)
                     {
-                        try
-                        {
-                            if (client.Connected)
+                            if (receivedClients[client].Connected)
                             {
-                                client.GetStream().Write(blackCardBytes, 0, blackCardBytes.Length);
-                                client.GetStream().Write(whiteCardsBytes, 0, whiteCardsBytes.Length);
+                                string whiteCards = ChooseWhiteCards();
+                                byte[] whiteCardsBytes = Encoding.UTF8.GetBytes(whiteCards);
+                                receivedClients[client].GetStream().Write(blackCardBytes, 0, blackCardBytes.Length);
+                                receivedClients[client].GetStream().Write(whiteCardsBytes, 0, whiteCardsBytes.Length);
                             }
-                        }
-                        catch (Exception)
-                        {
-                            client.Close();
-                            Console.WriteLine($"{GetClientIP(client)} Has left.");
-                            receivedClients.Remove(client);
-                        }
                     }
                     break;
 
@@ -335,15 +331,19 @@ namespace CardsAgainstHumanity
                             }
                         }
 
-                        foreach (var client in receivedClients)
+                        for (int client = 0; client < receivedClients.Count; client++)
                         {
                             for (int i = 0; i < receivedClients.Count - 1; i++)
                             {
-                                scoreBoard += $"\nPlayer {receivedClients.IndexOf(client)} Has:  {playerPoints[receivedClients.IndexOf(client)]}";
+                                scoreBoard += $"\nPlayer {client} Has:  {playerPoints[client]} points";
+
                             }
                             byte[] scoreBoardBytes = Encoding.UTF8.GetBytes(scoreBoard);
-                            client.GetStream().Write(scoreBoardBytes, 0, scoreBoardBytes.Length);
+                            receivedClients[client].GetStream().Write(scoreBoardBytes, 0, scoreBoardBytes.Length);
                         }
+                        
+
+                        
 
                         if (playerPoints[player.Key] == pointsToWin)
                         {
@@ -412,14 +412,12 @@ namespace CardsAgainstHumanity
                 ReceiveMessage(stream);
                 Console.Write("You: ");
                 string text = Console.ReadLine();
-                string[] whiteCard = text.Split(':'); 
                 byte[] buffer = Encoding.UTF8.GetBytes(text);
 
-                switch (whiteCard[0].ToLower())
+                switch (text.ToLower())
                 {
-                    case "choose:":
-                        byte[] chosenCard = Encoding.UTF8.GetBytes($"choose:{whiteCards[int.Parse(whiteCard[1])]}");
-                        stream.Write(chosenCard, 0, chosenCard.Length);
+                    case "choose":
+                        ChooseWhiteCard(whiteCards, stream);
                         break;
 
                     default:
@@ -440,16 +438,28 @@ namespace CardsAgainstHumanity
 
         public async void ReceiveMessage(NetworkStream stream)
         {
-            byte[] buffer = new byte[256];
+            byte[] buffer = new byte[2560];
             int numberOfBytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
             string receivedMessage = Encoding.UTF8.GetString(buffer, 0, numberOfBytesRead);
             whiteCards = receivedMessage.Split('<');
             Console.WriteLine($"\nCarCzar: \n{receivedMessage}");
             Console.WriteLine();
-            foreach (var whiteCard in whiteCards)
+            for (int whiteCard = 0; whiteCard < whiteCards.Length; whiteCard++)
             {
-                Console.WriteLine(whiteCard);
+                Console.WriteLine($"nr {whiteCard}:{whiteCards[whiteCard]}");
             }
+            
+                
+            
+        }
+
+        public void ChooseWhiteCard(string[] whiteCards, NetworkStream stream)
+        {
+            Console.WriteLine("Type the number of the card:\n");
+            int index = int.Parse(Console.ReadLine());
+            string chosenCard = $"choose:{whiteCards[index]}";
+            byte[] chosenCardBytes = Encoding.UTF8.GetBytes(chosenCard);
+            stream.Write(chosenCardBytes, 0, chosenCardBytes.Length);
         }
     }
 }
